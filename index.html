@@ -1,0 +1,503 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تطبيق فهم المقروء</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Tahoma, Arial, sans-serif;
+  background: #f0f4fa;
+  color: #243047;
+  padding: 20px;
+}
+
+.container {
+  max-width: 750px;
+  margin: 25px auto;
+  background: white;
+  padding: 25px;
+  border-radius: 20px;
+  box-shadow: 0 8px 30px #24304715;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+header h1 {
+  color: #3157c8;
+  margin-bottom: 8px;
+}
+
+header p {
+  color: #68758a;
+  line-height: 1.8;
+}
+
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.progress-bar {
+  background: #e5eaf3;
+  height: 9px;
+  border-radius: 20px;
+  overflow: hidden;
+  margin-bottom: 25px;
+}
+
+#progress {
+  width: 0;
+  height: 100%;
+  background: #4263eb;
+  transition: width 0.3s;
+}
+
+.passage-card {
+  background: #f4f7ff;
+  border-right: 5px solid #4263eb;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 25px;
+}
+
+.passage-card h2 {
+  margin-top: 0;
+  color: #3157c8;
+  font-size: 19px;
+}
+
+#passage {
+  font-size: 18px;
+  line-height: 2;
+  margin-bottom: 0;
+}
+
+#question {
+  line-height: 1.9;
+  font-size: 19px;
+  margin-bottom: 18px;
+}
+
+.option {
+  display: block;
+  width: 100%;
+  padding: 15px;
+  margin: 10px 0;
+  text-align: right;
+  background: white;
+  border: 2px solid #e0e5ef;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 16px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.option:hover:not(:disabled) {
+  border-color: #4263eb;
+  background: #f4f7ff;
+}
+
+.option.correct {
+  background: #e2f8e9;
+  border-color: #24994b;
+  color: #176b32;
+}
+
+.option.wrong {
+  background: #fff0ef;
+  border-color: #dc4545;
+  color: #a52b2b;
+}
+
+.option:disabled {
+  cursor: default;
+}
+
+#feedback {
+  display: none;
+  padding: 15px;
+  border-radius: 10px;
+  line-height: 1.8;
+  margin-top: 15px;
+}
+
+#next, #restart {
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  padding: 15px;
+  margin-top: 18px;
+  background: #4263eb;
+  color: white;
+  font-family: inherit;
+  font-size: 17px;
+  cursor: pointer;
+}
+
+#next:disabled {
+  background: #aab5d4;
+  cursor: not-allowed;
+}
+
+#result {
+  display: none;
+  text-align: center;
+  line-height: 2;
+}
+
+#result h2 {
+  color: #3157c8;
+}
+
+.score {
+  font-size: 35px;
+  font-weight: bold;
+  color: #3157c8;
+}
+
+footer {
+  text-align: center;
+  color: #8490a3;
+  margin-top: 25px;
+  font-size: 12px;
+}
+
+@media (max-width: 500px) {
+  body {
+    padding: 10px;
+  }
+
+  .container {
+    padding: 17px;
+    margin: 10px auto;
+  }
+
+  #passage {
+    font-size: 16px;
+  }
+
+  #question {
+    font-size: 17px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<header>
+  <h1>فهم المقروء</h1>
+  <p>اقرأ الفقرة جيدًا، ثم اختر الإجابة الصحيحة من بين ثلاثة خيارات.</p>
+</header>
+
+<div id="game">
+  <div class="progress-info">
+    <span id="counter">السؤال 1</span>
+    <span id="points">النقاط: 0</span>
+  </div>
+
+  <div class="progress-bar">
+    <div id="progress"></div>
+  </div>
+
+  <div class="passage-card">
+    <h2 id="passageTitle"></h2>
+    <p id="passage"></p>
+  </div>
+
+  <h2 id="question"></h2>
+
+  <div id="options"></div>
+
+  <div id="feedback"></div>
+
+  <button id="next" disabled onclick="nextQuestion()">
+    السؤال التالي
+  </button>
+</div>
+
+<div id="result">
+  <h2>أحسنت! لقد أكملت النشاط.</h2>
+  <p>نتيجتك النهائية:</p>
+  <div class="score" id="finalScore"></div>
+  <p id="message"></p>
+  <button id="restart" onclick="restartGame()">إعادة المحاولة</button>
+</div>
+
+<footer>
+  نشاط تربوي لتنمية الفهم والاستيعاب القرائي
+</footer>
+
+</div>
+
+<script>
+const questions = [
+  {
+    title: "الفقرة الأولى: النظافة",
+    passage: "استيقظ أحمد صباحًا، فغسل وجهه ونظف أسنانه. ثم ارتدى ملابسه النظيفة وتناول فطوره قبل الذهاب إلى المدرسة. كان أحمد يعرف أن النظافة تحافظ على صحة الإنسان وتجعله نشيطًا.",
+    question: "لماذا يهتم أحمد بنظافته؟",
+    options: [
+      "لأن النظافة تحافظ على الصحة",
+      "لأنه يريد النوم",
+      "لأنه لا يحب المدرسة"
+    ],
+    answer: 0,
+    explanation: "ورد في الفقرة أن النظافة تحافظ على صحة الإنسان."
+  },
+  {
+    title: "الفقرة الأولى: النظافة",
+    passage: "استيقظ أحمد صباحًا، فغسل وجهه ونظف أسنانه. ثم ارتدى ملابسه النظيفة وتناول فطوره قبل الذهاب إلى المدرسة. كان أحمد يعرف أن النظافة تحافظ على صحة الإنسان وتجعله نشيطًا.",
+    question: "ماذا فعل أحمد قبل الذهاب إلى المدرسة؟",
+    options: [
+      "ذهب إلى الحديقة",
+      "تناول فطوره",
+      "عاد إلى النوم"
+    ],
+    answer: 1,
+    explanation: "تناول أحمد فطوره قبل الذهاب إلى المدرسة."
+  },
+  {
+    title: "الفقرة الثانية: الشجرة",
+    passage: "زرعت مريم شجرة صغيرة في حديقة منزلها. كانت تسقيها كل صباح وتزيل الأعشاب من حولها. وبعد أشهر، كبرت الشجرة وأصبحت تعطي ثمارًا لذيذة. فرحت مريم لأنها اعتنت بها وصبرت حتى نمت.",
+    question: "ماذا كانت تفعل مريم كل صباح؟",
+    options: [
+      "تقطف الثمار",
+      "تبيع الشجرة",
+      "تسقي الشجرة"
+    ],
+    answer: 2,
+    explanation: "كانت مريم تسقي الشجرة كل صباح."
+  },
+  {
+    title: "الفقرة الثانية: الشجرة",
+    passage: "زرعت مريم شجرة صغيرة في حديقة منزلها. كانت تسقيها كل صباح وتزيل الأعشاب من حولها. وبعد أشهر، كبرت الشجرة وأصبحت تعطي ثمارًا لذيذة. فرحت مريم لأنها اعتنت بها وصبرت حتى نمت.",
+    question: "ما الفكرة التي نتعلمها من الفقرة؟",
+    options: [
+      "الصبر والعناية يساعدان على النجاح",
+      "الأشجار لا تحتاج إلى الماء",
+      "العمل لا يحتاج إلى وقت"
+    ],
+    answer: 0,
+    explanation: "اعتنت مريم بالشجرة وصبرت حتى كبرت وأثمرت."
+  },
+  {
+    title: "الفقرة الثالثة: المكتبة",
+    passage: "ذهب سامي مع زملائه إلى مكتبة المدرسة. اختار كتابًا عن الحيوانات وجلس يقرأ بهدوء. تعرّف من خلاله على حياة الأسود والفيلة والزرافات. أعاد الكتاب إلى مكانه قبل أن يغادر المكتبة.",
+    question: "عن ماذا كان الكتاب الذي اختاره سامي؟",
+    options: [
+      "عن الرياضة",
+      "عن الحيوانات",
+      "عن الفضاء"
+    ],
+    answer: 1,
+    explanation: "اختار سامي كتابًا عن الحيوانات."
+  },
+  {
+    title: "الفقرة الثالثة: المكتبة",
+    passage: "ذهب سامي مع زملائه إلى مكتبة المدرسة. اختار كتابًا عن الحيوانات وجلس يقرأ بهدوء. تعرّف من خلاله على حياة الأسود والفيلة والزرافات. أعاد الكتاب إلى مكانه قبل أن يغادر المكتبة.",
+    question: "ماذا فعل سامي قبل مغادرة المكتبة؟",
+    options: [
+      "أخذ جميع الكتب",
+      "ترك الكتاب على الأرض",
+      "أعاد الكتاب إلى مكانه"
+    ],
+    answer: 2,
+    explanation: "أعاد سامي الكتاب إلى مكانه قبل المغادرة."
+  },
+  {
+    title: "الفقرة الرابعة: التعاون",
+    passage: "لاحظت ليلى أن زميلتها تعجز عن حمل الكتب الكثيرة. اقتربت منها وساعدتها في حملها إلى القسم. شكرتها زميلتها وابتسمت. شعرت ليلى بالسعادة لأنها ساعدت غيرها، وفهمت أن التعاون يجعل الحياة أسهل.",
+    question: "لماذا ساعدت ليلى زميلتها؟",
+    options: [
+      "لأن زميلتها كانت تحتاج إلى المساعدة",
+      "لأنها أرادت مغادرة المدرسة",
+      "لأنها أرادت إخفاء الكتب"
+    ],
+    answer: 0,
+    explanation: "ساعدت ليلى زميلتها لأنها لم تستطع حمل الكتب وحدها."
+  },
+  {
+    title: "الفقرة الرابعة: التعاون",
+    passage: "لاحظت ليلى أن زميلتها تعجز عن حمل الكتب الكثيرة. اقتربت منها وساعدتها في حملها إلى القسم. شكرتها زميلتها وابتسمت. شعرت ليلى بالسعادة لأنها ساعدت غيرها، وفهمت أن التعاون يجعل الحياة أسهل.",
+    question: "ما معنى التعاون في هذه الفقرة؟",
+    options: [
+      "العمل بمفردنا دائمًا",
+      "مساعدة الآخرين",
+      "رفض مساعدة الزملاء"
+    ],
+    answer: 1,
+    explanation: "التعاون هو مساعدة الآخرين والعمل معهم."
+  },
+  {
+    title: "الفقرة الخامسة: حماية البيئة",
+    passage: "خرجت عائلة ياسين في نزهة إلى الغابة. بعد تناول الطعام، جمع ياسين النفايات ووضعها في كيس. ثم بحث عن سلة مهملات ليرميها فيها. شكرته أمه، وقالت إن المحافظة على نظافة الطبيعة مسؤولية الجميع.",
+    question: "أين وضع ياسين النفايات أولًا؟",
+    options: [
+      "في النهر",
+      "تحت الشجرة",
+      "في كيس"
+    ],
+    answer: 2,
+    explanation: "جمع ياسين النفايات ووضعها في كيس."
+  },
+  {
+    title: "الفقرة الخامسة: حماية البيئة",
+    passage: "خرجت عائلة ياسين في نزهة إلى الغابة. بعد تناول الطعام، جمع ياسين النفايات ووضعها في كيس. ثم بحث عن سلة مهملات ليرميها فيها. شكرته أمه، وقالت إن المحافظة على نظافة الطبيعة مسؤولية الجميع.",
+    question: "ما الرسالة الأساسية للفقرة؟",
+    options: [
+      "يجب المحافظة على نظافة الطبيعة",
+      "يجب ترك النفايات في الغابة",
+      "لا ينبغي الخروج في نزهات"
+    ],
+    answer: 0,
+    explanation: "تؤكد الفقرة أن المحافظة على الطبيعة مسؤولية الجميع."
+  }
+];
+
+let current = 0;
+let score = 0;
+let answered = false;
+
+function showQuestion() {
+  answered = false;
+
+  const q = questions[current];
+
+  document.getElementById("counter").textContent =
+    `السؤال ${current + 1} من ${questions.length}`;
+
+  document.getElementById("points").textContent =
+    `النقاط: ${score}`;
+
+  document.getElementById("progress").style.width =
+    `${(current / questions.length) * 100}%`;
+
+  document.getElementById("passageTitle").textContent = q.title;
+  document.getElementById("passage").textContent = q.passage;
+  document.getElementById("question").textContent = q.question;
+
+  const options = document.getElementById("options");
+  options.innerHTML = "";
+
+  q.options.forEach((option, index) => {
+    const button = document.createElement("button");
+    button.className = "option";
+    button.textContent =
+      `${["أ", "ب", "ج"][index]} — ${option}`;
+
+    button.onclick = () => checkAnswer(index);
+    options.appendChild(button);
+  });
+
+  document.getElementById("feedback").style.display = "none";
+  document.getElementById("next").disabled = true;
+  document.getElementById("next").textContent =
+    current === questions.length - 1
+      ? "عرض النتيجة"
+      : "السؤال التالي";
+}
+
+function checkAnswer(index) {
+  if (answered) return;
+  answered = true;
+
+  const q = questions[current];
+  const buttons = document.querySelectorAll(".option");
+  const feedback = document.getElementById("feedback");
+
+  buttons.forEach((button, i) => {
+    button.disabled = true;
+
+    if (i === q.answer) {
+      button.classList.add("correct");
+    }
+  });
+
+  if (index === q.answer) {
+    score++;
+    feedback.textContent = "إجابة صحيحة! " + q.explanation;
+    feedback.style.background = "#e2f8e9";
+    feedback.style.color = "#176b32";
+  } else {
+    buttons[index].classList.add("wrong");
+    feedback.textContent = "ليست الإجابة الصحيحة. " + q.explanation;
+    feedback.style.background = "#fff0ef";
+    feedback.style.color = "#a52b2b";
+  }
+
+  feedback.style.display = "block";
+  document.getElementById("points").textContent =
+    `النقاط: ${score}`;
+
+  document.getElementById("next").disabled = false;
+}
+
+function nextQuestion() {
+  if (!answered) return;
+
+  current++;
+
+  if (current < questions.length) {
+    showQuestion();
+  } else {
+    showResult();
+  }
+}
+
+function showResult() {
+  document.getElementById("game").style.display = "none";
+  document.getElementById("result").style.display = "block";
+
+  document.getElementById("progress").style.width = "100%";
+
+  document.getElementById("finalScore").textContent =
+    `${score} / ${questions.length}`;
+
+  const percentage = Math.round(score / questions.length * 100);
+  let message;
+
+  if (percentage >= 90) {
+    message = "ممتاز! لديك فهم جيد جدًا للمقروء.";
+  } else if (percentage >= 70) {
+    message = "جيد جدًا! واصل التدريب لتحسين مهاراتك.";
+  } else if (percentage >= 50) {
+    message = "أداء جيد. اقرأ الفقرات بتركيز أكبر.";
+  } else {
+    message = "حاول مجددًا، واقرأ كل فقرة ببطء قبل الإجابة.";
+  }
+
+  document.getElementById("message").textContent = message;
+}
+
+function restartGame() {
+  current = 0;
+  score = 0;
+
+  document.getElementById("game").style.display = "block";
+  document.getElementById("result").style.display = "none";
+
+  showQuestion();
+}
+
+showQuestion();
+</script>
+
+</body>
+</html>
